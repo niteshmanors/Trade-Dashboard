@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Trade Dashboard — w/c 4 May 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #2c2c2a; min-height: 100vh; }
+  .shell { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  .header { margin-bottom: 1.5rem; }
+  .header h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .header p { font-size: 13px; color: #888780; }
+  .nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.75rem; }
+  .nav-btn { font-size: 13px; padding: 7px 18px; border-radius: 20px; border: 1px solid #d3d1c7; background: #fff; cursor: pointer; color: #5f5e5a; white-space: nowrap; transition: all .15s; }
+  .nav-btn:hover { border-color: #888780; color: #2c2c2a; }
+  .nav-btn.active { background: #2c2c2a; color: #fff; border-color: #2c2c2a; font-weight: 500; }
+  .section { display: none; }
+  .section.visible { display: block; }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.25rem; }
+  .metrics.three { grid-template-columns: repeat(3, 1fr); }
+  .metric { background: #fff; border: 1px solid #e8e8e4; border-radius: 10px; padding: 1rem; text-align: center; }
+  .metric.warn { background: #FAEEDA; border-color: #FAC775; }
+  .metric.danger { background: #FCEBEB; border-color: #F7C1C1; }
+  .metric.info { background: #E6F1FB; border-color: #B5D4F4; }
+  .metric.success { background: #EAF3DE; border-color: #C0DD97; }
+  .metric .lbl { font-size: 11px; color: #888780; margin-bottom: 5px; }
+  .metric .val { font-size: 24px; font-weight: 600; }
+  .metric .sub { font-size: 11px; color: #888780; margin-top: 3px; }
+  .card { background: #fff; border: 1px solid #e8e8e4; border-radius: 12px; padding: 1.25rem; margin-bottom: 14px; }
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .ctitle { font-size: 11px; font-weight: 600; color: #888780; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; }
+  .toggle-row { display: flex; gap: 8px; margin-bottom: 1rem; }
+  .tog-btn { font-size: 12px; padding: 5px 14px; border-radius: 20px; border: 1px solid #d3d1c7; background: #fff; cursor: pointer; color: #5f5e5a; }
+  .tog-btn.active { background: #2c2c2a; color: #fff; border-color: #2c2c2a; font-weight: 500; }
+  .nr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .nr-card { border-radius: 8px; padding: 0.875rem; text-align: center; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; font-size: 12px; color: #888780; }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .stock-card { background: #fff; border-radius: 12px; padding: 1.25rem; margin-bottom: 10px; border-left: 3px solid #ccc; border-top: 1px solid #e8e8e4; border-right: 1px solid #e8e8e4; border-bottom: 1px solid #e8e8e4; }
+  .stock-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .stock-name { font-weight: 600; font-size: 14px; }
+  .stock-meta { font-size: 12px; color: #888780; margin-top: 2px; }
+  .progress-wrap { display: flex; align-items: center; gap: 8px; }
+  .progress-bar { display: flex; border-radius: 20px; overflow: hidden; height: 8px; width: 120px; background: #f1efe8; }
+  .crit-count { font-size: 12px; color: #888780; white-space: nowrap; }
+  .section-lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; margin-top: 2px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 0; margin-bottom: 8px; }
+  .pill { display: inline-block; border-radius: 20px; padding: 4px 10px; font-size: 12px; font-weight: 500; margin: 3px 3px 0 0; }
+  .ret-legend { display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: #888780; }
+  @media (max-width: 600px) {
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .metrics.three { grid-template-columns: repeat(2, 1fr); }
+    .card-grid { grid-template-columns: 1fr; }
+    .nr-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="header">
+    <h1>Weekly trade dashboard</h1>
+    <p>Week commencing 4 May 2026</p>
+  </div>
+
+  <nav class="nav">
+    <button class="nav-btn active" onclick="show('sales',this)">Sales</button>
+    <button class="nav-btn" onclick="show('capsule',this)">Summer Capsule 26</button>
+    <button class="nav-btn" onclick="show('orders',this)">Orders</button>
+    <button class="nav-btn" onclick="show('stock',this)">Stock</button>
+    <button class="nav-btn" onclick="show('returns',this)">Returns</button>
+  </nav>
+
+  <!-- SALES -->
+  <div class="section visible" id="sec-sales">
+    <div class="metrics">
+      <div class="metric"><div class="lbl">Top product revenue</div><div class="val">£11,580</div><div class="sub">Recycled GK Trouser</div></div>
+      <div class="metric"><div class="lbl">Top product units</div><div class="val">116</div><div class="sub">Course Polo</div></div>
+      <div class="metric"><div class="lbl">Top 20 revenue</div><div class="val">£68,474</div></div>
+      <div class="metric"><div class="lbl">Top 20 units</div><div class="val">1,089</div></div>
+    </div>
+    <div class="toggle-row">
+      <button class="tog-btn active" id="s-rev-btn" onclick="salesToggle('rev')">By revenue</button>
+      <button class="tog-btn" id="s-unit-btn" onclick="salesToggle('units')">By units</button>
+    </div>
+    <div class="card">
+      <div class="ctitle" id="sales-title">Top 20 products — net revenue this week</div>
+      <div id="s-rev-wrap" style="position:relative;width:100%;height:620px;"><canvas id="salesRevChart" role="img" aria-label="Top 20 by revenue"></canvas></div>
+      <div id="s-unit-wrap" style="display:none;position:relative;width:100%;height:620px;"><canvas id="salesUnitChart" role="img" aria-label="Top 20 by units"></canvas></div>
+    </div>
+  </div>
+
+  <!-- CAPSULE -->
+  <div class="section" id="sec-capsule">
+    <div class="metrics">
+      <div class="metric"><div class="lbl">Products launched</div><div class="val">5</div></div>
+      <div class="metric"><div class="lbl">Total units sold</div><div class="val">264</div></div>
+      <div class="metric"><div class="lbl">Total net revenue</div><div class="val">£17,302</div></div>
+      <div class="metric"><div class="lbl">Avg revenue / product</div><div class="val">£3,460</div></div>
+    </div>
+    <div class="card-grid">
+      <div class="card">
+        <div class="ctitle">Best seller by units</div>
+        <div style="font-size:20px;font-weight:600;">Stableford Short</div>
+        <div style="font-size:30px;font-weight:600;color:#3266ad;margin:6px 0;">109 units</div>
+        <div style="font-size:12px;color:#888780;margin-bottom:14px;">£7,617 net revenue</div>
+        <div style="position:relative;width:100%;height:130px;"><canvas id="capUnitsChart" role="img" aria-label="Capsule units"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="ctitle">Best seller by revenue</div>
+        <div style="font-size:20px;font-weight:600;">Stableford Short</div>
+        <div style="font-size:30px;font-weight:600;color:#1d9e75;margin:6px 0;">£7,617</div>
+        <div style="font-size:12px;color:#888780;margin-bottom:14px;">109 units sold</div>
+        <div style="position:relative;width:100%;height:130px;"><canvas id="capRevChart" role="img" aria-label="Capsule revenue"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDERS -->
+  <div class="section" id="sec-orders">
+    <div class="metrics">
+      <div class="metric"><div class="lbl">Total orders</div><div class="val">637</div></div>
+      <div class="metric"><div class="lbl">Total revenue</div><div class="val">£96,464</div></div>
+      <div class="metric"><div class="lbl">Avg order value</div><div class="val">£175</div></div>
+      <div class="metric"><div class="lbl">Countries</div><div class="val">19</div></div>
+    </div>
+    <div class="card-grid">
+      <div class="card">
+        <div class="ctitle">Daily orders &amp; revenue</div>
+        <div style="position:relative;width:100%;height:180px;"><canvas id="dailyChart" role="img" aria-label="Daily orders and revenue"></canvas></div>
+        <div class="legend"><span><i style="background:#3266ad;"></i>Revenue</span><span><i style="background:#1d9e75;"></i>Orders</span></div>
+      </div>
+      <div class="card">
+        <div class="ctitle">New vs returning customers</div>
+        <div class="nr-grid">
+          <div class="nr-card" style="background:#E6F1FB;"><div style="font-size:11px;color:#185FA5;margin-bottom:3px;">New</div><div style="font-size:26px;font-weight:600;color:#185FA5;">358</div><div style="font-size:11px;color:#185FA5;">56% of orders</div></div>
+          <div class="nr-card" style="background:#EAF3DE;"><div style="font-size:11px;color:#3B6D11;margin-bottom:3px;">Returning</div><div style="font-size:26px;font-weight:600;color:#3B6D11;">279</div><div style="font-size:11px;color:#3B6D11;">44% of orders</div></div>
+        </div>
+        <div style="position:relative;width:100%;height:100px;"><canvas id="nrChart" role="img" aria-label="New vs returning by day"></canvas></div>
+        <div class="legend"><span><i style="background:#3266ad;"></i>New</span><span><i style="background:#1d9e75;"></i>Returning</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Revenue &amp; orders by country — largest to smallest</div>
+      <div style="position:relative;width:100%;height:300px;"><canvas id="countryChart" role="img" aria-label="Revenue by country largest to smallest"></canvas></div>
+    </div>
+  </div>
+
+  <!-- STOCK -->
+  <div class="section" id="sec-stock">
+    <div class="metrics three">
+      <div class="metric"><div class="lbl">Total units in stock</div><div class="val">5,055</div></div>
+      <div class="metric warn"><div class="lbl">Low stock alerts</div><div class="val">8 products</div></div>
+      <div class="metric danger"><div class="lbl">Critical variants</div><div class="val">20+</div></div>
+    </div>
+    <div class="metrics three" style="margin-bottom:1.25rem;">
+      <div class="metric danger"><div style="font-size:22px;">🔴</div><div style="font-size:13px;font-weight:600;color:#A32D2D;">Critical</div><div style="font-size:11px;color:#A32D2D;">Order now</div></div>
+      <div class="metric warn"><div style="font-size:22px;">🟡</div><div style="font-size:13px;font-weight:600;color:#854F0B;">Low</div><div style="font-size:11px;color:#854F0B;">Keep an eye on it</div></div>
+      <div class="metric success"><div style="font-size:22px;">🟢</div><div style="font-size:13px;font-weight:600;color:#3B6D11;">Good</div><div style="font-size:11px;color:#3B6D11;">Plenty in stock</div></div>
+    </div>
+    <div id="stockCards"></div>
+  </div>
+
+  <!-- RETURNS -->
+  <div class="section" id="sec-returns">
+    <div class="metrics">
+      <div class="metric"><div class="lbl">Total ordered</div><div class="val">20,873</div></div>
+      <div class="metric"><div class="lbl">Total returned</div><div class="val">1,564</div></div>
+      <div class="metric"><div class="lbl">Overall return rate</div><div class="val">7.43%</div></div>
+      <div class="metric danger"><div class="lbl">Above avg rate</div><div class="val">4 products</div></div>
+    </div>
+    <div class="card-grid">
+      <div class="card">
+        <div class="ctitle">Return rate — largest to smallest</div>
+        <div style="position:relative;width:100%;height:280px;"><canvas id="rateChart" role="img" aria-label="Return rate largest to smallest"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="ctitle">Units returned — largest to smallest</div>
+        <div style="position:relative;width:100%;height:280px;"><canvas id="retUnitsChart" role="img" aria-label="Units returned largest to smallest"></canvas></div>
+      </div>
+    </div>
+    <div class="ret-legend">
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:#E24B4A;display:inline-block;"></span>Above average (7.43%)</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:#3266ad;display:inline-block;"></span>Below average</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const tc='#5f5e5a', gc='rgba(0,0,0,0.05)', lc='#2c2c2a';
+const done={};
+
+function show(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('visible'));
+  document.getElementById('sec-'+id).classList.add('visible');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(!done[id]){build(id);done[id]=true;}
+}
+
+function salesToggle(mode){
+  const r=mode==='rev';
+  document.getElementById('s-rev-wrap').style.display=r?'block':'none';
+  document.getElementById('s-unit-wrap').style.display=r?'none':'block';
+  document.getElementById('sales-title').textContent=r?'Top 20 products — net revenue this week':'Top 20 products — units sold this week';
+  document.getElementById('s-rev-btn').classList.toggle('active',r);
+  document.getElementById('s-unit-btn').classList.toggle('active',!r);
+}
+
+function lp(fmtFn){
+  return{id:'lp'+Math.random(),afterDatasetsDraw(chart){
+    const ctx=chart.ctx;
+    chart.getDatasetMeta(0).data.forEach((bar,i)=>{
+      const v=chart.data.datasets[0].data[i];
+      ctx.save();ctx.fillStyle=lc;ctx.font='500 11px -apple-system,sans-serif';
+      ctx.textAlign='left';ctx.textBaseline='middle';
+      ctx.fillText(fmtFn(v),bar.x+6,bar.y);ctx.restore();
+    });
+  }};
+}
+
+function hBar(id,labels,data,fmtFn,colors,maxMult,extra){
+  new Chart(document.getElementById(id),{
+    type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderRadius:3,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      layout:{padding:{right:90}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmtFn(ctx.parsed.x)}}},
+      scales:{
+        x:{grid:{color:gc},ticks:{color:tc,font:{size:11},callback:v=>fmtFn(v)},border:{display:false},max:Math.max(...data)*(maxMult||1.2)},
+        y:{grid:{display:false},ticks:{color:tc,font:{size:12}},border:{display:false}}
+      }
+    },
+    plugins:[lp(fmtFn),...(extra||[])]
+  });
+}
+
+function build(id){
+  if(id==='sales'){
+    const rp=["Tour Shirt","Retro Crown Cap","1/4 Zip Mid-Layer","Reversible V-Neck Vest","Insulated Gilet","Stableford Trousers","LW Perf. Polo","Tech Cap","Blade Course Polo","LW Pleated Short","Ranger Golf Jacket","Ranger Golf Short","Buttersoft Polo","Recycled GK Shorts","LW Pleated Trouser","Shooter Shirt","Course Polo","GOAT Pique Polo","Stableford Short","Recycled GK Trouser"];
+    const rv=[1321,1361,1485,1512,1548,1650,1783,1865,1967,2364,2813,2906,3030,4073,4475,4568,5651,6188,7617,11580];
+    const up=["Club Pant","Insulated Gilet","Reversible V-Neck Vest","1/4 Zip Mid-Layer","Course Cap","LW Pleated Short","Ranger Golf Jacket","Blade Course Polo","LW Perf. Polo","Retro Crown Cap","Shooter Shirt","LW Pleated Trouser","Recycled GK Shorts","Buttersoft Polo","Ranger Golf Short","Tech Cap","GOAT Pique Polo","Stableford Short","Recycled GK Trouser","Course Polo"];
+    const uv=[14,15,16,21,22,26,28,28,29,35,40,44,45,47,51,59,95,109,109,116];
+    hBar('salesRevChart',rp,rv,v=>'£'+v.toLocaleString(),'#3266ad');
+    hBar('salesUnitChart',up,uv,v=>v+' units','#3266ad');
+  }
+  if(id==='capsule'){
+    hBar('capUnitsChart',["Blade Course Polo","LW Perf. Polo","Buttersoft Polo","Ranger Golf Short","Stableford Short"],[28,29,47,51,109],v=>v+' u','#3266ad',1.25);
+    hBar('capRevChart',["LW Perf. Polo","Blade Course Polo","Ranger Golf Short","Buttersoft Polo","Stableford Short"],[1783,1967,2906,3030,7617],v=>'£'+v.toLocaleString(),'#1d9e75',1.25);
+  }
+  if(id==='orders'){
+    const days=['Mon 4','Tue 5','Wed 6','Thu 7','Fri 8','Sat 9','Sun 10'];
+    new Chart(document.getElementById('dailyChart'),{type:'bar',data:{labels:days,datasets:[
+      {label:'Revenue',data:[13754,27720,15891,12436,7480,9367,9816],backgroundColor:'#3266ad',borderRadius:4,borderSkipped:false,yAxisID:'y1'},
+      {label:'Orders',data:[74,204,109,78,51,57,64],type:'line',borderColor:'#1d9e75',backgroundColor:'rgba(29,158,117,0.1)',pointBackgroundColor:'#1d9e75',pointRadius:4,tension:0.3,yAxisID:'y2',fill:true}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label==='Revenue'?'£'+ctx.parsed.y.toLocaleString():ctx.parsed.y+' orders'}}},
+      scales:{x:{grid:{display:false},ticks:{color:tc,font:{size:11}},border:{display:false}},y1:{position:'left',grid:{color:gc},ticks:{color:tc,font:{size:10},callback:v=>'£'+v.toLocaleString()},border:{display:false}},y2:{position:'right',grid:{display:false},ticks:{color:tc,font:{size:10}},border:{display:false}}}}});
+    new Chart(document.getElementById('nrChart'),{type:'bar',data:{labels:days,datasets:[
+      {label:'New',data:[55,80,61,46,36,38,42],backgroundColor:'#3266ad',borderRadius:3,borderSkipped:false,stack:'s'},
+      {label:'Returning',data:[19,120,48,32,15,18,22],backgroundColor:'#1d9e75',borderRadius:3,borderSkipped:false,stack:'s'}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:tc,font:{size:10}},border:{display:false}},y:{stacked:true,grid:{color:gc},ticks:{color:tc,font:{size:10}},border:{display:false}}}}});
+    const cd=[{c:'New Zealand',s:669,o:4},{c:'Netherlands',s:954,o:3},{c:'Mexico',s:1066,o:2},{c:'Hong Kong',s:1343,o:4},{c:'Philippines',s:878,o:1},{c:'Switzerland',s:1810,o:6},{c:'Canada',s:4118,o:13},{c:'Australia',s:4904,o:33},{c:'United States',s:30261,o:197},{c:'United Kingdom',s:47006,o:356}];
+    new Chart(document.getElementById('countryChart'),{type:'bar',data:{labels:cd.map(d=>d.c),datasets:[{data:cd.map(d=>d.s),backgroundColor:'#3266ad',borderRadius:3,borderSkipped:false}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,layout:{padding:{right:170}},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const d=cd[ctx.dataIndex];return['£'+d.s.toLocaleString(),d.o+' orders'];}}}},
+        scales:{x:{grid:{color:gc},ticks:{color:tc,font:{size:11},callback:v=>'£'+v.toLocaleString()},border:{display:false},max:58000},y:{grid:{display:false},ticks:{color:tc,font:{size:12}},border:{display:false}}}},
+      plugins:[{id:'cl',afterDatasetsDraw(chart){const ctx=chart.ctx;chart.getDatasetMeta(0).data.forEach((bar,i)=>{const d=cd[i];ctx.save();ctx.fillStyle=lc;ctx.font='500 11px -apple-system,sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText('£'+d.s.toLocaleString()+'  ·  '+d.o+' orders',bar.x+8,bar.y);ctx.restore();});}}]});
+  }
+  if(id==='stock'){
+    const sd={"Stableford Short":{total:228,sold:109,variants:[{c:"Dune",sz:"28",u:1,l:"critical"},{c:"Dune",sz:"38",u:0,l:"critical"},{c:"Shark",sz:"38",u:0,l:"critical"},{c:"Dune",sz:"32",u:60,l:"low"},{c:"Dune",sz:"36",u:19,l:"low"},{c:"Dune",sz:"30",u:23,l:"good"},{c:"Dune",sz:"34",u:57,l:"good"},{c:"Shark",sz:"28",u:2,l:"good"},{c:"Shark",sz:"30",u:7,l:"good"},{c:"Shark",sz:"32",u:28,l:"good"},{c:"Shark",sz:"34",u:24,l:"good"},{c:"Shark",sz:"36",u:7,l:"good"}]},"Recycled GK Trouser":{total:274,sold:110,variants:[{c:"Black",sz:"28",u:0,l:"critical"},{c:"Steel",sz:"32",u:0,l:"critical"},{c:"Olive",sz:"32",u:0,l:"critical"},{c:"Dune",sz:"34",u:0,l:"critical"},{c:"Dune",sz:"32",u:0,l:"critical"},{c:"Navy",sz:"30",u:0,l:"critical"},{c:"Black",sz:"36",u:0,l:"critical"},{c:"Black",sz:"34",u:17,l:"critical"},{c:"Black",sz:"30",u:0,l:"critical"},{c:"Dune",sz:"28",u:0,l:"critical"},{c:"Dune",sz:"36",u:12,l:"good"},{c:"Navy",sz:"28",u:6,l:"good"},{c:"Tan",sz:"34",u:27,l:"good"},{c:"Navy",sz:"32",u:43,l:"good"},{c:"Black",sz:"32",u:78,l:"good"}]},"GOAT Pique Polo":{total:590,sold:96,variants:[{c:"Navy",sz:"XS",u:0,l:"critical"},{c:"Pine Green",sz:"M",u:17,l:"critical"},{c:"Navy",sz:"L",u:140,l:"good"},{c:"Sky Blue",sz:"M",u:65,l:"good"},{c:"Pine Green",sz:"L",u:75,l:"good"},{c:"Navy",sz:"M",u:80,l:"good"},{c:"Navy",sz:"XL",u:41,l:"good"}]},"Course Polo":{total:2098,sold:116,variants:[{c:"Black",sz:"XXL",u:0,l:"critical"},{c:"Blue Granite",sz:"M",u:8,l:"low"},{c:"Black",sz:"L",u:88,l:"good"},{c:"Dune",sz:"L",u:216,l:"good"},{c:"White",sz:"L",u:221,l:"good"},{c:"Sage",sz:"L",u:199,l:"good"},{c:"White",sz:"M",u:195,l:"good"}]},"Ranger Golf Short":{total:283,sold:49,variants:[{c:"Earth",sz:"28",u:3,l:"low"},{c:"Pebble",sz:"28",u:6,l:"good"},{c:"Pebble",sz:"32",u:40,l:"good"},{c:"Earth",sz:"32",u:41,l:"good"},{c:"Earth",sz:"34",u:55,l:"good"}]},"Buttersoft Polo":{total:287,sold:47,variants:[{c:"Arctic",sz:"L",u:38,l:"good"},{c:"Tan",sz:"L",u:70,l:"good"},{c:"Tan",sz:"M",u:55,l:"good"},{c:"Arctic",sz:"M",u:26,l:"good"}]},"Recycled GK Shorts":{total:320,sold:45,variants:[{c:"Black",sz:"38",u:0,l:"critical"},{c:"Navy",sz:"32",u:2,l:"critical"},{c:"Navy",sz:"30",u:1,l:"critical"},{c:"Dune",sz:"36",u:1,l:"critical"},{c:"Navy",sz:"34",u:3,l:"low"},{c:"Navy",sz:"36",u:3,l:"low"},{c:"Black",sz:"32",u:67,l:"good"},{c:"Black",sz:"34",u:47,l:"good"},{c:"Dune",sz:"32",u:19,l:"good"}]},"LW Pleated Trouser":{total:352,sold:45,variants:[{c:"Dark Olive",sz:"32",u:7,l:"critical"},{c:"Midnight",sz:"28",u:0,l:"critical"},{c:"Midnight",sz:"32",u:1,l:"critical"},{c:"Dark Olive",sz:"36",u:1,l:"low"},{c:"Black",sz:"32",u:94,l:"good"},{c:"Pebble",sz:"32",u:62,l:"good"},{c:"Black",sz:"34",u:57,l:"good"}]},"Shooter Shirt":{total:640,sold:41,variants:[{c:"Pine Green",sz:"M",u:84,l:"good"},{c:"Pine Green",sz:"L",u:79,l:"good"},{c:"Navy",sz:"L",u:45,l:"good"},{c:"Dune",sz:"L",u:42,l:"good"},{c:"Black",sz:"S",u:44,l:"good"}]},"Tech Cap":{total:1110,sold:59,variants:[{c:"Dark Olive",sz:"One Size",u:307,l:"good"},{c:"White",sz:"One Size",u:260,l:"good"},{c:"Navy",sz:"One Size",u:256,l:"good"},{c:"Black",sz:"One Size",u:164,l:"good"},{c:"Dune",sz:"One Size",u:94,l:"good"},{c:"Shark",sz:"One Size",u:29,l:"good"}]}};
+    const wrap=document.getElementById('stockCards');
+    Object.entries(sd).forEach(([name,p])=>{
+      const crit=p.variants.filter(v=>v.l==='critical');
+      const low=p.variants.filter(v=>v.l==='low');
+      const good=p.variants.filter(v=>v.l==='good');
+      const tot=p.variants.length;
+      const em=crit.length>0?'🔴':low.length>0?'🟡':'🟢';
+      const bord=crit.length>0?'#F0957B':low.length>0?'#FAC775':'#C0DD97';
+      const pill=(v,bg,col)=>{const lb=v.sz==='One Size'?v.c:`${v.c} · ${v.sz}`;const dt=v.u===0?'out of stock':`${v.u} units`;return`<span class="pill" style="background:${bg};color:${col};">${lb} — ${dt}</span>`;};
+      const sec=(items,lb,e,bg,col)=>!items.length?'':`<div><div class="section-lbl" style="color:${col};">${e} ${lb}</div><div class="pills">${items.map(v=>pill(v,bg,col)).join('')}</div></div>`;
+      const cp=Math.round(crit.length/tot*100),lop=Math.round(low.length/tot*100),gp=100-cp-lop;
+      const d=document.createElement('div');
+      d.className='stock-card';d.style.borderLeftColor=bord;
+      d.innerHTML=`<div class="stock-header">
+        <div><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">${em}</span><div><div class="stock-name">${name}</div><div class="stock-meta">${p.total.toLocaleString()} in stock · ${p.sold} sold this week</div></div></div></div>
+        <div class="progress-wrap"><div class="progress-bar">${cp>0?`<div style="width:${cp}%;background:#E24B4A;"></div>`:''} ${lop>0?`<div style="width:${lop}%;background:#EF9F27;"></div>`:''} ${gp>0?`<div style="width:${gp}%;background:#639922;"></div>`:''}</div><span class="crit-count">${crit.length} critical</span></div></div>
+        ${sec(crit,'Nearly gone — order now','🔴','#FCEBEB','#A32D2D')}
+        ${sec(low,'Running low','🟡','#FAEEDA','#854F0B')}
+        ${sec(good,'Good — plenty in stock','🟢','#EAF3DE','#3B6D11')}`;
+      wrap.appendChild(d);
+    });
+  }
+  if(id==='returns'){
+    const AVG=7.43;
+    const pr=[{n:'GOAT Polo Monogram',o:381,r:49,rt:12.76},{n:'LW Pleated Trouser',o:780,r:96,rt:12.19},{n:'Club Pant',o:345,r:39,rt:11.27},{n:'Recycled GK Trouser',o:3075,r:326,rt:10.53},{n:'Insulated Gilet',o:685,r:67,rt:9.69},{n:'Ranger Golf Jacket',o:503,r:46,rt:9.07},{n:'Recycled GK Shorts',o:526,r:39,rt:7.34},{n:'Course Polo',o:1284,r:90,rt:6.97},{n:'Tech Cap',o:891,r:52,rt:5.73},{n:'GOAT Pique Polo',o:977,r:56,rt:5.68}];
+    const byRate=[...pr].sort((a,b)=>a.rt-b.rt);
+    const byUnits=[...pr].sort((a,b)=>a.r-b.r);
+    const avgPl={id:'avgL',afterDraw(chart){if(!chart.config.options._avg)return;const ctx=chart.ctx,xp=chart.scales.x.getPixelForValue(AVG),{top,bottom}=chart.scales.y;ctx.save();ctx.strokeStyle='#E24B4A';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(xp,top);ctx.lineTo(xp,bottom);ctx.stroke();ctx.fillStyle='#E24B4A';ctx.font='500 10px sans-serif';ctx.textAlign='left';ctx.fillText('Avg '+AVG+'%',xp+4,top+10);ctx.restore();}};
+    Chart.register(avgPl);
+    new Chart(document.getElementById('rateChart'),{type:'bar',data:{labels:byRate.map(d=>d.n),datasets:[{data:byRate.map(d=>d.rt),backgroundColor:byRate.map(d=>d.rt>AVG?'#E24B4A':'#3266ad'),borderRadius:3,borderSkipped:false}]},
+      options:{_avg:true,indexAxis:'y',responsive:true,maintainAspectRatio:false,layout:{padding:{right:50}},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const d=byRate[ctx.dataIndex];return[d.rt+'%',d.r+' returned',d.o+' ordered'];}}}},scales:{x:{grid:{color:gc},ticks:{color:tc,font:{size:11},callback:v=>v+'%'},border:{display:false},max:16},y:{grid:{display:false},ticks:{color:tc,font:{size:11}},border:{display:false}}}},plugins:[lp(v=>v+'%')]});
+    new Chart(document.getElementById('retUnitsChart'),{type:'bar',data:{labels:byUnits.map(d=>d.n),datasets:[{data:byUnits.map(d=>d.r),backgroundColor:byUnits.map(d=>d.rt>AVG?'#E24B4A':'#3266ad'),borderRadius:3,borderSkipped:false}]},
+      options:{_avg:false,indexAxis:'y',responsive:true,maintainAspectRatio:false,layout:{padding:{right:60}},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const d=byUnits[ctx.dataIndex];return[d.r+' returned',d.rt+'%',d.o+' ordered'];}}}},scales:{x:{grid:{color:gc},ticks:{color:tc,font:{size:11}},border:{display:false},max:380},y:{grid:{display:false},ticks:{color:tc,font:{size:11}},border:{display:false}}}},plugins:[lp(v=>v+' units')]});
+  }
+}
+
+window.addEventListener('load',()=>{build('sales');done['sales']=true;});
+</script>
+</body>
+</html>
